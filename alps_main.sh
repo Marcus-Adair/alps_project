@@ -50,19 +50,24 @@ echo "}" >> "$output_file"
 mv "$output_file" $THIS_DIR
 cd $THIS_DIR
 
-echo "Merged JSON file created: $output_file"
 
-echo "Parsing the output file ... "
 
-# Extract the IAM Resources from the JSON 
 
 # TODO: check env or something and decide to use 'python' or 'python3'
-json_data=$(python3 -c "import extract_iam, json; print(json.dumps(extract_iam.get_stacks_policies('$output_file')))")
 
-# TODO: pass the extracted dict into another python script to scan them for insecurites. 
+# Extract the IAM Resources from the JSON 
+echo "Parsing the output file ... "
+IAM_POLICY_JSON=$(python3 extract_iam.py $output_file)
+
+# TODO: handle the case where there is an empty dict returned --> Display message to user
+
+
+# Parse the policies for insecurities 
+rtrn_data=$(python3 insecurity_scan.py "$IAM_POLICY_JSON")
+echo $rtrn_data
 
 
 
-
+# TODO
 
 
