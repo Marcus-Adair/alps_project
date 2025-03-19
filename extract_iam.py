@@ -8,6 +8,7 @@
 
 import json
 import sys
+import argparse
 ############################################################
 
 
@@ -68,81 +69,106 @@ def get_stacks_policies(file_path):
         file_path (string): path to the file containing Cloud infrastructre JSON output from 'cdk synth' 
     '''
 
-    # Extract the IAM Resources
-    iam_resources = extract_iam_resources(file_path)
+    try:
 
-    print(f"\nExtracting IAM Resources from {len(iam_resources)} JSON files:\n", file=sys.stderr)
+        # Extract the IAM Resources
+        iam_resources = extract_iam_resources(file_path)
 
-
-    stack_policies_dict = {}
-
-    # For each stack (with saved resources), extract the policy names/code
-    for stack_name, stack_resources in iam_resources.items():
-        print('----------------------------', file=sys.stderr)
-        print(f"Parsing IAM Resources from Stack: {stack_name}", file=sys.stderr)
-
-        # Dict of policy names and their documents
-        stack_policies = {}
-
-        policy_name_count = 0
-        policy_document_count = 0
-
-        # Go through each saved resource in a stack 
-        for stack_resource in stack_resources:
-            for stack_data in stack_resource:
-                if stack_data == 'Properties':
-
-                    # init vars
-                    policy_name = None
-                    policy_document = None
+        print(f"\nExtracting IAM Resources from {len(iam_resources)} JSON files:\n", file=sys.stderr)
 
 
-                    # Parse out the Policy name
-                    if 'PolicyName' in stack_resource[stack_data]:
-                        policy_name = stack_resource[stack_data]['PolicyName']
-                        policy_name_count += 1
-                        # print('Policy Name: ' + policy_name, file=sys.stderr)
+        stack_policies_dict = {}
+        policy_count = 0 
 
-                    if 'ManagedPolicyName' in stack_resource[stack_data]:
-                        policy_name = stack_resource[stack_data]['ManagedPolicyName']
-                        policy_name_count += 1
-                        # print('ManagedPolicy Name: ' + policy_name, file=sys.stderr)
+        # For each stack (with saved resources), extract the policy names/code
+        for stack_name, stack_resources in iam_resources.items():
+            print('----------------------------', file=sys.stderr)
+            print(f"Parsing IAM Resources from Stack: {stack_name}", file=sys.stderr)
 
+            # Dict of policy names and their documents
+            stack_policies = {}
 
-                    # Parse out the Policy code 
-                    if 'PolicyDocument' in stack_resource[stack_data]:
-                        policy_document = stack_resource[stack_data]['PolicyDocument']
-                        policy_document_count += 1
-                        # print('Policy Document: ' + str(policy_document), file=sys.stderr)
+            policy_name_count = 0
+            policy_document_count = 0
 
+            # Go through each saved resource in a stack 
+            for stack_resource in stack_resources:
+                for stack_data in stack_resource:
+                    if stack_data == 'Properties':
 
-                    # Save the policy 
-                    if policy_name and policy_document:
-                        print(f'Found Policy {policy_name}\n', file=sys.stderr)
-                        stack_policies[policy_name] = policy_document
-
-
-        # Save list of policies to the stack name in the dict to return 
-        stack_policies_dict[stack_name] = stack_policies
+                        # init vars
+                        policy_name = None
+                        policy_document = None
 
 
-        # # PRINT STACK POLICY INFO 
-        # print(f"Stack: {stack_name}", file=sys.stderr)
-        # print(f"policy name count: {policy_name_count}", file=sys.stderr)
-        # print(f"policy document count: {policy_document_count}", file=sys.stderr)
-        # print('\n')
+                        # Parse out the Policy name
+                        if 'PolicyName' in stack_resource[stack_data]:
+                            policy_name = stack_resource[stack_data]['PolicyName']
+                            policy_name_count += 1
+                            # print('Policy Name: ' + policy_name, file=sys.stderr)
 
-        # print('----------------------------', file=sys.stderr)
-        # print("\n", file=sys.stderr)
+                        if 'ManagedPolicyName' in stack_resource[stack_data]:
+                            policy_name = stack_resource[stack_data]['ManagedPolicyName']
+                            policy_name_count += 1
+                            # print('ManagedPolicy Name: ' + policy_name, file=sys.stderr)
 
 
-    # # PRINT THE STACK POLICIES 
-    # print(f"Stacks and their Policies:", file=sys.stderr)    
-    # for stack_pol in stack_policies_dict:
-    #     print(f"a stack pol: ", file=sys.stderr)
-    #     print(str(stack_policies_dict[stack_pol]), file=sys.stderr)
-    #     print('\n', file=sys.stderr)
+                        # Parse out the Policy code 
+                        if 'PolicyDocument' in stack_resource[stack_data]:
+                            policy_document = stack_resource[stack_data]['PolicyDocument']
+                            policy_document_count += 1
+                            # print('Policy Document: ' + str(policy_document), file=sys.stderr)
 
-    
-    # Return stack_policies_dict as JSON to the calling bash script
-    print(json.dumps(stack_policies_dict))  
+                        # Save the policy 
+                        if policy_name and policy_document:
+                            
+                            if not ("RoleDefaultPolicy" in policy_name): # Ignore automatically created default policies      
+
+                                # print(f'Found Policy {policy_name}\n', file=sys.stderr)
+                                stack_policies[policy_name] = policy_document
+                                policy_count += 1
+
+
+            # Save list of policies to the stack name in the dict to return 
+            stack_policies_dict[stack_name] = stack_policies
+
+
+    ################################################## Debug Print statements ####################
+            # # PRINT STACK POLICY INFO 
+            # print(f"Stack: {stack_name}", file=sys.stderr)
+            # print(f"policy name count: {policy_name_count}", file=sys.stderr)
+            # print(f"policy document count: {policy_document_count}", file=sys.stderr)
+            # print('\n')
+
+            # print('----------------------------', file=sys.stderr)
+            # print("\n", file=sys.stderr)
+
+
+        # # PRINT THE STACK POLICIES 
+        # print(f"Stacks and their Policies:", file=sys.stderr)    
+        # for stack_pol in stack_policies_dict:
+        #     print(f"a stack pol: ", file=sys.stderr)
+        #     print(str(stack_policies_dict[stack_pol]), file=sys.stderr)
+        #     print('\n', file=sys.stderr)
+    ###############################################################################################
+        
+        print(f'Found Policy {str(policy_count)} policies.', file=sys.stderr)
+
+
+        # Return stack_policies_dict as JSON to the calling bash script
+        return json.dumps(stack_policies_dict)
+
+    except json.JSONDecodeError as e:
+        return f"Error getting stack policies: {e}"
+
+# MAIN 
+if __name__ == "__main__":
+
+    # Parse the argument
+    parser = argparse.ArgumentParser(description='Navigate given dir to parse for IAM policies')
+    parser.add_argument('file_path', type=str, help='Path to the JSON file with CDK stack info')
+    args = parser.parse_args()
+
+    # Get the stack policies
+    stack_policies = get_stacks_policies(args.file_path)
+    print(stack_policies)

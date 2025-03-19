@@ -17,3 +17,7 @@ At a high level, ALPS:
 ## Installation & Usage
 
 🚧 **TODO:** Add instructions for installing and running ALPS.
+
+## Additionsal Notes:
+
+- ALPS assumes that user policies are named and do not contain "RoleDefaultPolicy". If "RoleDefaultPolicy" is contained in a manually created policy then ALPS will ignore it.
