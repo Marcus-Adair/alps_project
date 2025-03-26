@@ -1,7 +1,9 @@
 # Ignore output file that is parsed
 merged_output.json
 
-
 # Python Artifacts
 __pycache__
 .DS_Store
+
+# Ignore .egg-info directories
+*.egg-info/
