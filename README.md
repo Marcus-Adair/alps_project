@@ -32,17 +32,17 @@ sudo pip install --editable . # Enter in password after
 ## Usage
 
 - After installation, navigate to the base directory of your CDK project and run ALPS using the following command:
-  `alps_project`
+  `alps`
 
 - To view all available options for running ALPS, use the command:
-  `alps_project -h`
+  `alps -h`
 
 - To run ALPS from any location and specify the base directory of your CDK project, use the following command:
-  `alps_project -c <base_dir>`
+  `alps -c <base_dir>`
   where `<base_dir>` is the path to your CDK project.
 
 - To execute ALPS in verbose mode and display additional information, use:
-  `alps_project -v`
+  `alps -v`
 
 ## Additional Notes:
 
