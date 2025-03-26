@@ -18,7 +18,7 @@ At a high level, ALPS:
 
 ## Installation
 
-Install with `pip`:
+Install with `pip` (TODO: IMPLEMENT THIS ⚠️):
 
 ```sh
 pip install alps_project
