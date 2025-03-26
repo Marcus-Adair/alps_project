@@ -13,8 +13,8 @@ At a high level, ALPS:
 - Identifies **insecure IAM policies**
 
 - Suggests **more secure IAM policies** in the form of:
-  - **Python CDK code**
   - **Descriptive security recommendations**
+  - **Python CDK code** (TODO: IMPLEMENT THIS ⚠️):
 
 ## Installation
 
