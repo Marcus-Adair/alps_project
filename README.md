@@ -18,14 +18,6 @@ At a high level, ALPS:
 
 ## Installation
 
-Install with `pip` (TODO: IMPLEMENT THIS ⚠️):
-
-```sh
-pip install alps_project
-```
-
-OR
-
 Install locally:
 
 ```sh
