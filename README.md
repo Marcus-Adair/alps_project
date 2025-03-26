@@ -9,14 +9,31 @@ ALPS is an **AWS IAM least-privilege policy suggestor/generator** for **AWS Clou
 At a high level, ALPS:
 
 - Parses synthesized **Python CDK** code
+
 - Identifies **insecure IAM policies**
+
 - Suggests **more secure IAM policies** in the form of:
   - **Python CDK code**
   - **Descriptive security recommendations**
 
-## Installation & Usage
+## Installation
 
-🚧 **TODO:** Add instructions for installing and running ALPS.
+🚧 **TODO:** Add instructions for installing ALPS.
+
+## Usage
+
+- After installation, navigate to the base directory of your CDK project and run ALPS using the following command:  
+  `alps_project`
+
+- To view all available options for running ALPS, use the command:  
+  `alps_project -h`
+
+- To run ALPS from any location and specify the base directory of your CDK project, use the following command:  
+  `alps_project -c <base_dir>`  
+  where `<base_dir>` is the path to your CDK project.
+
+- To execute ALPS in verbose mode and display additional information, use:  
+  `alps_project -v`
 
 ## Additional Notes:
 
