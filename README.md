@@ -20,4 +20,4 @@ At a high level, ALPS:
 
 ## Additional Notes:
 
-- ALPS assumes that user policies are named and do not contain "RoleDefaultPolicy". If "RoleDefaultPolicy" is contained in a manually created policy then ALPS will ignore it.
+- ALPS assumes that user policies are named and do not contain "DefaultPolicy". If "DefaultPolicy" is contained in a manually created policy then ALPS will ignore it.

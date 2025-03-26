@@ -122,7 +122,7 @@ def get_stacks_policies(file_path):
                         # Save the policy 
                         if policy_name and policy_document:
                             
-                            if not ("RoleDefaultPolicy" in policy_name): # Ignore automatically created default policies      
+                            if not ("DefaultPolicy" in policy_name): # Ignore automatically created default policies      
 
                                 # print(f'Found Policy {policy_name}\n', file=sys.stderr)
                                 stack_policies[policy_name] = policy_document
