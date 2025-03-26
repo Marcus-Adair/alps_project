@@ -18,21 +18,38 @@ At a high level, ALPS:
 
 ## Installation
 
-🚧 **TODO:** Add instructions for installing ALPS.
+Install with `pip`:
+
+```sh
+pip install alps_project
+```
+
+OR
+
+Install locally:
+
+```sh
+git clone https://github.com/Marcus-Adair/alps_project.git
+
+cd alps_project
+
+sudo pip install --editable . # Enter in password after
+
+```
 
 ## Usage
 
-- After installation, navigate to the base directory of your CDK project and run ALPS using the following command:  
+- After installation, navigate to the base directory of your CDK project and run ALPS using the following command:
   `alps_project`
 
-- To view all available options for running ALPS, use the command:  
+- To view all available options for running ALPS, use the command:
   `alps_project -h`
 
-- To run ALPS from any location and specify the base directory of your CDK project, use the following command:  
-  `alps_project -c <base_dir>`  
+- To run ALPS from any location and specify the base directory of your CDK project, use the following command:
+  `alps_project -c <base_dir>`
   where `<base_dir>` is the path to your CDK project.
 
-- To execute ALPS in verbose mode and display additional information, use:  
+- To execute ALPS in verbose mode and display additional information, use:
   `alps_project -v`
 
 ## Additional Notes:
