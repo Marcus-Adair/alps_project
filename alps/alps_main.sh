@@ -11,6 +11,18 @@ ALPS_DIR="$(dirname "$(realpath "$0")")"
 
 PROJ_BASE_DIR=$1 # base dir 
 
+
+# Check what Pythnon to use 
+if command -v python3 &>/dev/null; then
+    PYTHON_CMD=python3
+elif command -v python &>/dev/null; then
+    PYTHON_CMD=python
+else
+    echo "Error: No Python interpreter found!" >&2
+    exit 1
+fi
+
+
 # Go into the project base dir and look for cdk.out to parse
 cd $PROJ_BASE_DIR
 if [ ! -d "cdk.out" ]; then
@@ -52,20 +64,22 @@ mv "$OUTPUT_FILE" $ALPS_DIR
 cd $ALPS_DIR
 
 
-# TODO: check env or something and decide to use 'python' or 'python3'
-
 # Extract the IAM Resources from the JSON 
 echo "Parsing the output file ... "
-IAM_POLICY_JSON=$(python3 extract_iam.py $OUTPUT_FILE)
+IAM_POLICY_JSON=$($PYTHON_CMD extract_iam.py $OUTPUT_FILE)
 
 
 # TODO: handle the case where there is an empty dict returned --> Display message to user
 
 # Parse the policies for insecurities 
-rtrn_data=$(python3 insecurity_scan.py "$IAM_POLICY_JSON")
+rtrn_data=$($PYTHON_CMD insecurity_scan.py "$IAM_POLICY_JSON")
 echo $rtrn_data
 
+
+
 # TODO: nicely format the output for the user
+
+
 
 # Clean up temp file 
 rm $OUTPUT_FILE
