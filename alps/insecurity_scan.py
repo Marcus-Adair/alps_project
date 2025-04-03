@@ -130,7 +130,10 @@ def check_overly_permissive(policy_name, raw_policy_json):
                 suggestions.add(f"[HIGH RISK] {policy_name}: The action '{action}' grants broad permissions on {service}, which can lead to privilege escalation.")
                 python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources))
 
-    return suggestions, python_code_suggestions
+
+    found_suggestions =  len(suggestions) != 0 
+
+    return suggestions, python_code_suggestions, found_suggestions
 
 
 
@@ -173,7 +176,11 @@ def check_unnecessary_write_permissions(policy_name, raw_policy_json):
                     suggestions.add(f"[WARNING] {policy_name}: The action '{action}' grants potentially overly broad write permissions on {service}.")
                     python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources))
 
-    return suggestions, python_code_suggestions
+
+    # Flag if gound suggestions
+    found_suggestions =  len(suggestions) != 0
+
+    return suggestions, python_code_suggestions, found_suggestions
 
 
 #### MAYBE: #######
@@ -190,10 +197,8 @@ def scan_for_insecurities(json_policies_str):
 
     insecurities = set()
     python_suggestions = set()
+    insecure_policy_names = set()
 
-    # TEMP DEBUG CODE 
-    # display_count = 5
-    # saw = 0
 
     try:
         json_policies = json.loads(json_policies_str)
@@ -204,24 +209,35 @@ def scan_for_insecurities(json_policies_str):
             # For each Policy
             for policy_name in json_policies[policies_in_a_sack]:
 
+                # Note if security suggestions are found for the polciy
+                found_suggestions = False
+
                 # Get the Policy JSON
                 raw_policy_document_json = json_policies[policies_in_a_sack][policy_name]
 
 
                 # Parse for insecurites 
-
+                # -------------------------- #
                 # Check for overly permissive policies
-                overly_permissive_warnings, overly_permissive_code_suggestions = check_overly_permissive(policy_name, raw_policy_document_json)
+                overly_permissive_warnings, overly_permissive_code_suggestions, found_overly_permissive_suggestions = check_overly_permissive(policy_name, raw_policy_document_json)
                 insecurities.update(overly_permissive_warnings)
                 python_suggestions.update(overly_permissive_code_suggestions)
 
 
-                write_permissions_warnings, write_permissions_code_suggestions = check_unnecessary_write_permissions(policy_name, raw_policy_document_json)
+                write_permissions_warnings, write_permissions_code_suggestions, found_write_permissions_suggestions = check_unnecessary_write_permissions(policy_name, raw_policy_document_json)
                 insecurities.update(write_permissions_warnings)
                 python_suggestions.update(write_permissions_code_suggestions)
 
 
-        return insecurities, python_suggestions
+
+
+                # Track unique policy names with security vulnerabilites
+                found_suggestions = found_overly_permissive_suggestions or found_write_permissions_suggestions
+                if found_suggestions:
+                    insecure_policy_names.add(policy_name)
+
+
+        return insecurities, python_suggestions, insecure_policy_names
 
     except json.JSONDecodeError as e:
 
@@ -241,10 +257,33 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     
-    insecurities, code_suggestions = scan_for_insecurities(args.iam_policy_dict_str)
+    insecurities, code_suggestions, insecure_policy_names = scan_for_insecurities(args.iam_policy_dict_str)
 
 
     # TODO: congreate insecurities + code_suggestion of the same policy name to format nice
+    for policy_name in insecure_policy_names:
+
+        insecurities_with_name = []
+        
+        for insecurity in insecurities:
+            if policy_name in insecurity:
+                insecurities_with_name.append(insecurity)
+
+
+        # Remove
+        if len(insecurities_with_name)  > 1:
+            for insecur in insecurities_with_name:
+                insecurities.remove(insecur)
+
+        # And merge
+        merged_insecurity_warning = ""
+        for insecur in insecurities_with_name:
+            merged_insecurity_warning += f"{insecur}\n"
+
+        insecurities.add(merged_insecurity_warning)
+
+
+
 
 
     output = []
@@ -256,15 +295,32 @@ if __name__ == "__main__":
         output.append(output_i)
 
 
-
-    # for insecur in insecurities:
-    #     print(str(insecur), file=sys.stderr)
+    # for output_i in output:
+    #     print(str(output_i), file=sys.stderr)
     #     print('\n', file=sys.stderr)
     # print('\n', file=sys.stderr)
 
-    for output_i in output:
-        print(str(output_i), file=sys.stderr)
+
+
+
+
+
+    # Print security warning for verbose logging
+    for insecur in insecurities:
+        print(f"Insecurity: \n{str(insecur)}", file=sys.stderr)
+        print('-----------------------------\n', file=sys.stderr)
+    print('\n', file=sys.stderr)
+
+
+
+    for name in insecure_policy_names:
+        print(str(name), file=sys.stderr)
         print('\n', file=sys.stderr)
     print('\n', file=sys.stderr)
+
+
+    print(f"LENGTHS: insecurities: {len(insecurities)}, code_suggs:{len(code_suggestions)}, names: {len(insecure_policy_names)}", file=sys.stderr)
+
+
 
     print(output)
