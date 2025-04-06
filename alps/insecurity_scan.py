@@ -8,9 +8,22 @@ import json
 import sys
 import argparse
 import re
+import difflib
 ############################################################
 
 
+
+
+##############################################################################################################
+# General Helper Methods                                                                                     # 
+##############################################################################################################
+
+
+def print_v(verbose_log):
+    '''
+        Prints something to sys.stderr so it appears in verbose logging
+    '''
+    print(verbose_log, file=sys.stderr)
 
 def create_suggested_python_code(policy_name, effect, actions, resources, actions_message="Tighten up the allowed actions here", resources_message="Use a specific resource here"):
     '''
@@ -51,6 +64,43 @@ policy_var_name = iam.ManagedPolicy(self, "ADD_UNIQUE_STACK_IDENTIFIER_HERE",
     return iam_policyStaments
         
 
+def merge_policy_strings(policy_sugg_1, policy_sugg_2):
+    '''
+        Merges ... TODO: 
+    '''
+    lines1 = policy_sugg_1.strip().splitlines()
+    lines2 = policy_sugg_2.strip().splitlines()
+    merged_lines = []
+
+    for l1, l2 in zip(lines1, lines2):
+
+        if l1 == l2:
+            merged_lines.append(l1)
+        elif len(l1) > len(l2):
+            merged_lines.append(l1)
+        else: merged_lines.append(l2)
+    return "\n".join(merged_lines)
+
+    # for l1, l2 in zip(lines1, lines2):
+    #     code1, _, comment1 = l1.partition("#")
+    #     code2, _, comment2 = l2.partition("#")
+
+    #     if code1.strip() == code2.strip():
+
+    #         comments = set()
+    #         if comment1.strip():
+    #             comments.add(comment1.strip())
+    #         if comment2.strip():
+    #             comments.add(comment2.strip())
+    #         merged_comment = f"  # {' | '.join(sorted(comments))}" if comments else ""
+    #         merged_lines.append(code1.rstrip() + merged_comment)
+
+    #     else:
+    #         # Lines are different - include both with a note
+    #         merged_lines.append(f"# >>> From version 1:\n{l1}")
+    #         merged_lines.append(f"# >>> From version 2:\n{l2}")
+
+    return "\n".join(merged_lines)
 
 
 def get_effect_actions_resources(policy_statement):
@@ -71,6 +121,14 @@ def get_effect_actions_resources(policy_statement):
 
 
 
+
+
+##############################################################################################################
+# Helper methods to scan for specific insecurities                                                           # 
+##############################################################################################################
+
+
+# TODO: add more custom messages into the Python Code suggestions
 
 
 def check_overly_permissive(policy_name, raw_policy_json):
@@ -101,26 +159,29 @@ def check_overly_permissive(policy_name, raw_policy_json):
             # Check for admin access (all actions allowed)
             if action == "*":
                 suggestions.add(f"[HIGHLY CRITICAL] {policy_name}: The policy allows all actions ('*'), which is highly insecure.")
-                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources))
+                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources, actions_message="Specify certain actions here", resources_message=""))
 
             elif 'AdministratorAccess' in action:
                 suggestions.add(f"[HIGHLY CRITICAL] {policy_name}: The policy allows all actions ('AdministratorAccess'), which is highly insecure.")
-                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources))
+                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources, actions_message="Giving AdministratorAccess here is dangerous", resources_message=""))
 
+            # Check if all actions allowed for a specific service
             elif str(action).endswith("*"):
                 service = action.split(":")[0]
                 suggestions.add(f"[WARNING] {policy_name}: The action '{action}' could be overly broad and may allow unintended actions on {service}.")
-                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources))
+                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources, actions_message="Consider tightening the allowed actions to make things more least-privilege", resources_message=""))
 
         # Check for overly permissive resources
         for resource in resources:
+            # All resources allowed
             if resource == "*":
                 suggestions.add(f"[CRITICAL] {policy_name}: The policy allows all resources ('*'), which is highly insecure.")
-                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources))
+                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources, actions_message="", resources_message="Specify certain resources here"))
+
 
             elif str(resource).endswith("*"):
                 suggestions.add(f"[WARNING] {policy_name}: The resource '{resource}' could be overly broad and may allow unintended access.")
-                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources))
+                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resource, actions_message="", resources_message="Consider tightening up the allowed resources here"))
 
         # Additional warnings for sensitive permissions
         sensitive_services = ["iam", "s3", "ec2", "lambda"]
@@ -128,7 +189,7 @@ def check_overly_permissive(policy_name, raw_policy_json):
             service = action.split(":")[0]
             if service in sensitive_services and (action.endswith("*") or action == "*"):
                 suggestions.add(f"[HIGH RISK] {policy_name}: The action '{action}' grants broad permissions on {service}, which can lead to privilege escalation.")
-                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources))
+                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources, actions_message="Consider tightening the allowed actions to make things more least-privilege", resources_message=""))
 
 
     found_suggestions =  len(suggestions) != 0 
@@ -155,6 +216,8 @@ def check_unnecessary_write_permissions(policy_name, raw_policy_json):
         "lambda": ["lambda:DeleteFunction", "lambda:UpdateFunctionCode"]
     }
 
+    # TODO: add more specific code suggestion messages here
+
     for statement in policy_statements:
         # Parse the Policy document
         effect, actions, resources = get_effect_actions_resources(statement)
@@ -167,14 +230,14 @@ def check_unnecessary_write_permissions(policy_name, raw_policy_json):
             service, operation = (action.split(":") + [""])[:2]  # Handle cases where action might not be well-formed
             if service in high_risk_write_actions and action in high_risk_write_actions[service]:
                 suggestions.add(f"[WARNING] {policy_name}: The action '{action}' allows modification or deletion of resources.")
-                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources))
+                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources,  actions_message="Consider if these actions are needed or could be tightened", resources_message=""))
 
         # Check for wildcard write actions
         for service, risky_actions in high_risk_write_actions.items():
             for action in actions:
                 if action.startswith(f"{service}:") and action.endswith("*"):
                     suggestions.add(f"[WARNING] {policy_name}: The action '{action}' grants potentially overly broad write permissions on {service}.")
-                    python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources))
+                    python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources, actions_message="Consider if these actions are needed or could be tightened", resources_message=""))
 
 
     # Flag if gound suggestions
@@ -192,7 +255,7 @@ def check_unnecessary_write_permissions(policy_name, raw_policy_json):
 
 
 def scan_for_insecurities(json_policies_str):
-    print(f'Starting scan for IAM insecurities ... ', file=sys.stderr)
+    print_v(f'Starting scan for IAM insecurities ... ')
 
 
     insecurities = set()
@@ -259,35 +322,80 @@ if __name__ == "__main__":
     
     insecurities, code_suggestions, insecure_policy_names = scan_for_insecurities(args.iam_policy_dict_str)
 
+    insecurities_map = {}
+    code_suggestions_map = {}
 
-    # TODO: congreate insecurities + code_suggestion of the same policy name to format nice
+    # Aggregate insecurities  of the same policy name to format nice
     for policy_name in insecure_policy_names:
 
+        # Merge security warnings for the same policy
+
+        # Find warnings for the same iam policy
         insecurities_with_name = []
-        
         for insecurity in insecurities:
-            if policy_name in insecurity:
+            if policy_name in insecurity:                
                 insecurities_with_name.append(insecurity)
+
+        if len(insecurities_with_name)  > 1:
+
+            merged_insecurity_warning = ""
+            for insecur in insecurities_with_name:
+                insecurities.remove(insecur) # Remove single warning
+                merged_insecurity_warning += f"{insecur}\n" # Merge/append warning
+
+            insecurities.add(merged_insecurity_warning)
+            insecurities_map[policy_name] = merged_insecurity_warning
+
+        else:
+            insecurities_map[policy_name] = insecurities_with_name[0]
+
+        # ------------------------------------------------------------------------------------------------ #
+
+        # TODO: Aggregate code suggestions too!!!!!! (when i start doing more custom code suggetsions, they'll be to be formated)
+        code_suggestions_with_name = []
+        for code_suggestion in code_suggestions:
+            if policy_name in code_suggestion:
+                code_suggestions_with_name.append(code_suggestion)
 
 
         # Remove
-        if len(insecurities_with_name)  > 1:
-            for insecur in insecurities_with_name:
-                insecurities.remove(insecur)
+        if len(code_suggestions_with_name)  > 1:
 
-        # And merge
-        merged_insecurity_warning = ""
-        for insecur in insecurities_with_name:
-            merged_insecurity_warning += f"{insecur}\n"
+            merged_code_suggestion = code_suggestions_with_name[0]
+            first_sugg = True
 
-        insecurities.add(merged_insecurity_warning)
+            # merged_code_suggestion = ""
+            for code_sugg in code_suggestions_with_name:
+                
+                code_suggestions.remove(code_sugg) # Take out unmerged code suggestion
+                if first_sugg:
+                    first_sugg = False
+                    continue
+                
+                merged_code_suggestion = merge_policy_strings(merged_code_suggestion, code_sugg)
+
+                # code_suggestions.remove(code_sugg) # Remove single warning
+                # merged_code_suggestion += f"{code_sugg}\n" # Merge/append warning
 
 
+            code_suggestions.add(merged_code_suggestion)
+            code_suggestions_map[policy_name] = merged_code_suggestion
+
+        else:
+            code_suggestions_map[policy_name] = code_suggestions_with_name[0]
+         # ------------------------------------------------------------------------------------------------ #
 
 
+    # Print suggestions (to verbose logging)
 
     output = []
-    for insecurity_i, code_suggestions_i in zip(insecurities, code_suggestions):
+   #for insecurity_i, code_suggestions_i in zip(insecurities, code_suggestions):
+    for policy_name in insecure_policy_names:
+        insecurity_i = insecurities_map[policy_name]
+        code_suggestions_i = code_suggestions_map[policy_name]
+
+
+    
         output_i = f'''
 {insecurity_i}
 {code_suggestions_i}
@@ -295,32 +403,44 @@ if __name__ == "__main__":
         output.append(output_i)
 
 
-    # for output_i in output:
-    #     print(str(output_i), file=sys.stderr)
-    #     print('\n', file=sys.stderr)
-    # print('\n', file=sys.stderr)
+    for output_i in output:
+        print_v(str(output_i))
+        print_v('\n')
+    print_v('\n')
+
+
+
+
+
+    # for code_sugg in code_suggestions:
+    #     print_v(str(code_sugg))
+    #     print_v('\n')
+    # print_v('\n')
+
+
+
+    # # Print security warning for verbose logging
+    # for insecur in insecurities:
+    #     print_v(f"Insecurity: \n{str(insecur)}")
+    #     print_v('-----------------------------\n')
+    # print_v('\n')
+
+
+
+    # for name in insecure_policy_names:
+    #     print_v(str(name))
+    #     print_v('\n')
+    # print_v('\n')
+
+
+
+
+    print_v(f"LENGTHS: insecurities: {len(insecurities)}, code_suggs:{len(code_suggestions)}, names: {len(insecure_policy_names)}")
 
 
 
 
 
 
-    # Print security warning for verbose logging
-    for insecur in insecurities:
-        print(f"Insecurity: \n{str(insecur)}", file=sys.stderr)
-        print('-----------------------------\n', file=sys.stderr)
-    print('\n', file=sys.stderr)
-
-
-
-    for name in insecure_policy_names:
-        print(str(name), file=sys.stderr)
-        print('\n', file=sys.stderr)
-    print('\n', file=sys.stderr)
-
-
-    print(f"LENGTHS: insecurities: {len(insecurities)}, code_suggs:{len(code_suggestions)}, names: {len(insecure_policy_names)}", file=sys.stderr)
-
-
-
+    # Return output to main bash script 
     print(output)
