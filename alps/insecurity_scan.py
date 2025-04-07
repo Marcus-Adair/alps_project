@@ -79,28 +79,9 @@ def merge_policy_strings(policy_sugg_1, policy_sugg_2):
         elif len(l1) > len(l2):
             merged_lines.append(l1)
         else: merged_lines.append(l2)
+        
     return "\n".join(merged_lines)
 
-    # for l1, l2 in zip(lines1, lines2):
-    #     code1, _, comment1 = l1.partition("#")
-    #     code2, _, comment2 = l2.partition("#")
-
-    #     if code1.strip() == code2.strip():
-
-    #         comments = set()
-    #         if comment1.strip():
-    #             comments.add(comment1.strip())
-    #         if comment2.strip():
-    #             comments.add(comment2.strip())
-    #         merged_comment = f"  # {' | '.join(sorted(comments))}" if comments else ""
-    #         merged_lines.append(code1.rstrip() + merged_comment)
-
-    #     else:
-    #         # Lines are different - include both with a note
-    #         merged_lines.append(f"# >>> From version 1:\n{l1}")
-    #         merged_lines.append(f"# >>> From version 2:\n{l2}")
-
-    return "\n".join(merged_lines)
 
 
 def get_effect_actions_resources(policy_statement):
