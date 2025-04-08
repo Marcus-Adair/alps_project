@@ -138,25 +138,6 @@ def get_stacks_policies(file_path):
             # Save list of policies to the stack name in the dict to return 
             stack_policies_dict[stack_name] = stack_policies
 
-
-    ################################################## Debug Print statements ####################
-            # # PRINT STACK POLICY INFO 
-            # print(f"Stack: {stack_name}", file=sys.stderr)
-            # print(f"policy name count: {policy_name_count}", file=sys.stderr)
-            # print(f"policy document count: {policy_document_count}", file=sys.stderr)
-            # print('\n')
-
-            # print('----------------------------', file=sys.stderr)
-            # print("\n", file=sys.stderr)
-
-
-        # # PRINT THE STACK POLICIES 
-        # print(f"Stacks and their Policies:", file=sys.stderr)    
-        # for stack_pol in stack_policies_dict:
-        #     print(f"a stack pol: ", file=sys.stderr)
-        #     print(str(stack_policies_dict[stack_pol]), file=sys.stderr)
-        #     print('\n', file=sys.stderr)
-    ###############################################################################################
         
         print(f'Found Policy {str(policy_count)} policies.', file=sys.stderr)
 

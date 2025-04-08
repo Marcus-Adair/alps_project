@@ -119,16 +119,8 @@ def check_overly_permissive(policy_name, raw_policy_json):
     
     for statement in policy_statements:
 
-        print(f"Statement: {statement}")
-
-
         # Parse the Policy document
         effect, actions, resources = get_effect_actions_resources(statement)
-
-
-        print(f"EAR: {effect}, {actions}, {resources}")
-
-
         
         if effect != "Allow":
             continue  # Skip Deny statements
@@ -185,11 +177,6 @@ def check_unnecessary_write_permissions(policy_name, raw_policy_json):
     Checks an IAM policy JSON for unnecessary write permissions that could allow data tampering or destruction.
 
     """
-
-    # print_v(raw_policy_json)
-
-
-    print('hiii :)')
 
     policy_statements = raw_policy_json.get("Statement", [])
     suggestions = set()
@@ -383,10 +370,6 @@ if __name__ == "__main__":
         output.append(output_i)
 
 
-
-
     # Return output to main bash script 
-    # print(' '.join(output))
-
     print(json.dumps(output))
 
