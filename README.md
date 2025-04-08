@@ -14,7 +14,7 @@ At a high level, ALPS:
 
 - Suggests **more secure IAM policies** in the form of:
   - **Descriptive security recommendations**
-  - **Python CDK code** (TODO: IMPLEMENT THIS ⚠️):
+  - **Python CDK code**
 
 ## Installation
 
@@ -27,6 +27,16 @@ cd alps_project
 
 sudo pip install --editable . # Enter in password after
 
+```
+
+### Prerequisite: `jq`
+
+ALPS requires [`jq`](https://stedolan.github.io/jq/) to be installed on your system. `jq` is a lightweight and flexible command-line JSON processor used to parse AWS CDK output files.
+
+#### Install `jq`. The easiest way is through `brew`:
+
+```sh
+brew install jq
 ```
 
 ## Usage
@@ -43,6 +53,24 @@ sudo pip install --editable . # Enter in password after
 
 - To execute ALPS in verbose mode and display additional information, use:
   `alps -v`
+
+- The security vulnerability warning and Python code suggestions from ALPS will be printed to the console.
+
+## Testing
+
+- [This directory](./tests/) contains unit tests for ALPS.
+
+- To run the unit tests insall `pytest` with `pip`:
+
+```sh
+pip install pytest
+```
+
+- And in the repo's [base directory](./) or the [tests directory](./tests/), run the following command to run the unit tests:
+
+```sh
+pytest
+```
 
 ## Additional Notes:
 

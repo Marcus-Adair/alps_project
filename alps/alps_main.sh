@@ -71,13 +71,15 @@ IAM_POLICY_JSON=$($PYTHON_CMD extract_iam.py $OUTPUT_FILE)
 
 # TODO: handle the case where there is an empty dict returned --> Display message to user
 
+
 # Parse the policies for insecurities 
-rtrn_data=$($PYTHON_CMD insecurity_scan.py "$IAM_POLICY_JSON")
-echo $rtrn_data
+RTRN_DATA=$($PYTHON_CMD insecurity_scan.py "$IAM_POLICY_JSON")
 
 
-
-# TODO: nicely format the output for the user
+# Print the final output
+echo "$RTRN_DATA" | jq -r '.[]' | while IFS= read -r item; do
+    echo "$item"
+done
 
 
 

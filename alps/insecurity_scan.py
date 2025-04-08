@@ -7,8 +7,6 @@
 import json
 import sys
 import argparse
-import re
-import difflib
 ############################################################
 
 
@@ -30,7 +28,6 @@ def create_suggested_python_code(policy_name, effect, actions, resources, action
         Converts an IAN policy document in JSON from to Python code for code suggestion
     '''
 
-
     # Form comment to add, with option of adding no comment with "" is input
     if actions_message == "":
         actions_message_comment = ""
@@ -42,7 +39,6 @@ def create_suggested_python_code(policy_name, effect, actions, resources, action
     else:
         resources_message_comment = f"# {resources_message}"
     
-
 
     iam_policyStaments = f'''
 Python Policy suggestion:
@@ -109,8 +105,6 @@ def get_effect_actions_resources(policy_statement):
 ##############################################################################################################
 
 
-# TODO: add more custom messages into the Python Code suggestions
-
 
 def check_overly_permissive(policy_name, raw_policy_json):
     """
@@ -125,11 +119,8 @@ def check_overly_permissive(policy_name, raw_policy_json):
     
     for statement in policy_statements:
 
-
         # Parse the Policy document
         effect, actions, resources = get_effect_actions_resources(statement)
-
-
         
         if effect != "Allow":
             continue  # Skip Deny statements
@@ -163,6 +154,8 @@ def check_overly_permissive(policy_name, raw_policy_json):
             elif str(resource).endswith("*"):
                 suggestions.add(f"[WARNING] {policy_name}: The resource '{resource}' could be overly broad and may allow unintended access.")
                 python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resource, actions_message="", resources_message="Consider tightening up the allowed resources here"))
+
+
 
         # Additional warnings for sensitive permissions
         sensitive_services = ["iam", "s3", "ec2", "lambda"]
@@ -345,7 +338,6 @@ if __name__ == "__main__":
             merged_code_suggestion = code_suggestions_with_name[0]
             first_sugg = True
 
-            # merged_code_suggestion = ""
             for code_sugg in code_suggestions_with_name:
                 
                 code_suggestions.remove(code_sugg) # Take out unmerged code suggestion
@@ -355,10 +347,6 @@ if __name__ == "__main__":
                 
                 merged_code_suggestion = merge_policy_strings(merged_code_suggestion, code_sugg)
 
-                # code_suggestions.remove(code_sugg) # Remove single warning
-                # merged_code_suggestion += f"{code_sugg}\n" # Merge/append warning
-
-
             code_suggestions.add(merged_code_suggestion)
             code_suggestions_map[policy_name] = merged_code_suggestion
 
@@ -366,11 +354,8 @@ if __name__ == "__main__":
             code_suggestions_map[policy_name] = code_suggestions_with_name[0]
          # ------------------------------------------------------------------------------------------------ #
 
-
-    # Print suggestions (to verbose logging)
-
+    # Return suggestions to be printed 
     output = []
-   #for insecurity_i, code_suggestions_i in zip(insecurities, code_suggestions):
     for policy_name in insecure_policy_names:
         insecurity_i = insecurities_map[policy_name]
         code_suggestions_i = code_suggestions_map[policy_name]
@@ -380,48 +365,11 @@ if __name__ == "__main__":
         output_i = f'''
 {insecurity_i}
 {code_suggestions_i}
+\n
 '''
         output.append(output_i)
 
 
-    for output_i in output:
-        print_v(str(output_i))
-        print_v('\n')
-    print_v('\n')
-
-
-
-
-
-    # for code_sugg in code_suggestions:
-    #     print_v(str(code_sugg))
-    #     print_v('\n')
-    # print_v('\n')
-
-
-
-    # # Print security warning for verbose logging
-    # for insecur in insecurities:
-    #     print_v(f"Insecurity: \n{str(insecur)}")
-    #     print_v('-----------------------------\n')
-    # print_v('\n')
-
-
-
-    # for name in insecure_policy_names:
-    #     print_v(str(name))
-    #     print_v('\n')
-    # print_v('\n')
-
-
-
-
-    print_v(f"LENGTHS: insecurities: {len(insecurities)}, code_suggs:{len(code_suggestions)}, names: {len(insecure_policy_names)}")
-
-
-
-
-
-
     # Return output to main bash script 
-    print(output)
+    print(json.dumps(output))
+

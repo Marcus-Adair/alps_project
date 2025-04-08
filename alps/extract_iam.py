@@ -22,37 +22,43 @@ def extract_iam_resources(file_path):
         file_path (string): path to the file containing Cloud infrastructre JSON output from 'cdk synth' 
     '''
 
-    # The types of IAM resources to extract
-    desired_resource_types = ["AWS::IAM::Policy", "AWS::IAM::ManagedPolicy"] # "AWS::IAM::Role", ""AWS::S3::BucketPolicy""
+    try:
 
-    # Open the file as JSON
-    with open(file_path, 'r') as file:
-        json_data = json.load(file)
+        # The types of IAM resources to extract
+        desired_resource_types = ["AWS::IAM::Policy", "AWS::IAM::ManagedPolicy", "AWS::S3::BucketPolicy"] # "AWS::IAM::Role" 
 
-    # Init return dict
-    iam_resources = {}
+        # Open the file as JSON
+        with open(file_path, 'r') as file:
+            json_data = json.load(file)
 
-    # For each nested stack
-    for stack in json_data: 
+        # Init return dict
+        iam_resources = {}
 
-        stack_iam = [] # init list for saving IAM resources
+        # For each nested stack
+        for stack in json_data: 
 
-        # Extract the AwS::IAM resources 
-        for stack_key in json_data[stack]:
-            if stack_key == 'Resources':
-                for resource in json_data[stack][stack_key]:
-                    for resource_item in json_data[stack][stack_key][resource]:
-                        if resource_item == "Type":
-                            if json_data[stack][stack_key][resource][resource_item] in desired_resource_types:
-                                
-                                # Save the IAM resource
-                                stack_iam.append(json_data[stack][stack_key][resource])
+            stack_iam = [] # init list for saving IAM resources
 
-        # Only save data when the stack has IAM resources
-        if len(stack_iam) > 0:
-            iam_resources[stack] = stack_iam
+            # Extract the AwS::IAM resources 
+            for stack_key in json_data[stack]:
+                if stack_key == 'Resources':
+                    for resource in json_data[stack][stack_key]:
+                        for resource_item in json_data[stack][stack_key][resource]:
+                            if resource_item == "Type":
+                                if json_data[stack][stack_key][resource][resource_item] in desired_resource_types:
+                                    
+                                    # Save the IAM resource
+                                    stack_iam.append(json_data[stack][stack_key][resource])
 
-    return iam_resources
+            # Only save data when the stack has IAM resources
+            if len(stack_iam) > 0:
+                iam_resources[stack] = stack_iam
+
+        return iam_resources
+
+
+    except Exception as e:
+        return f"Error extracting iam resources: {e}"
 
 
 
@@ -132,25 +138,6 @@ def get_stacks_policies(file_path):
             # Save list of policies to the stack name in the dict to return 
             stack_policies_dict[stack_name] = stack_policies
 
-
-    ################################################## Debug Print statements ####################
-            # # PRINT STACK POLICY INFO 
-            # print(f"Stack: {stack_name}", file=sys.stderr)
-            # print(f"policy name count: {policy_name_count}", file=sys.stderr)
-            # print(f"policy document count: {policy_document_count}", file=sys.stderr)
-            # print('\n')
-
-            # print('----------------------------', file=sys.stderr)
-            # print("\n", file=sys.stderr)
-
-
-        # # PRINT THE STACK POLICIES 
-        # print(f"Stacks and their Policies:", file=sys.stderr)    
-        # for stack_pol in stack_policies_dict:
-        #     print(f"a stack pol: ", file=sys.stderr)
-        #     print(str(stack_policies_dict[stack_pol]), file=sys.stderr)
-        #     print('\n', file=sys.stderr)
-    ###############################################################################################
         
         print(f'Found Policy {str(policy_count)} policies.', file=sys.stderr)
 
@@ -158,7 +145,8 @@ def get_stacks_policies(file_path):
         # Return stack_policies_dict as JSON to the calling bash script
         return json.dumps(stack_policies_dict)
 
-    except json.JSONDecodeError as e:
+    except Exception as e:
+        
         return f"Error getting stack policies: {e}"
 
 # MAIN 
