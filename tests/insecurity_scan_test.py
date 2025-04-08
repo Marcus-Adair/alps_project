@@ -142,7 +142,7 @@ def test_all_actions_correct_warning():
     assert (expected_warning in suggestions)
 
 
-def test_wildcard_resource_warning():
+def test_wildcard_resource_warning_s3():
     name = "TestPolicyName"
     action = 's3:GetObject'
     effect = 'Allow'
@@ -175,12 +175,25 @@ def test_service_wide_action_s3_warning():
     assert expected_warning in suggestions
 
 
-
-
-
-def test_wildcard_resource_warning():
+def test_service_wide_action_ec2_warning():
     name = "TestPolicyName"
-    action = 's3:GetObject'
+    action = 'ec2:*'
+    effect = 'Allow'
+    resource = 'arn:aws:s3:::my-instance'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_overly_permissive(name, raw_policy)
+
+    expected_warning = f"[WARNING] {name}: The action 'ec2:*' could be overly broad and may allow unintended actions on ec2."
+    assert found_suggestions
+    assert expected_warning in suggestions
+
+
+
+def test_wildcard_resource_warning_ec2():
+    name = "TestPolicyName"
+    action = 'ec2:*'
     effect = 'Allow'
     resource = '*'
 
@@ -195,7 +208,7 @@ def test_wildcard_resource_warning():
 
 
 
-def test_sensitive_service_privilege_escalation_warning():
+def test_sensitive_service_privilege_escalation_warning_iam():
     name = "TestPolicyName"
     action = 'iam:*'
     effect = 'Allow'
@@ -209,6 +222,52 @@ def test_sensitive_service_privilege_escalation_warning():
     assert found_suggestions
     assert expected in suggestions
 
+
+
+def test_sensitive_service_privilege_escalation_warning_s3():
+    name = "TestPolicyName"
+    action = 's3:*'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_overly_permissive(name, raw_policy)
+
+    expected = f"[HIGH RISK] {name}: The action 's3:*' grants broad permissions on s3, which can lead to privilege escalation."
+    assert found_suggestions
+    assert expected in suggestions
+
+
+
+def test_sensitive_service_privilege_escalation_warning_ec2():
+    name = "TestPolicyName"
+    action = 'ec2:*'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_overly_permissive(name, raw_policy)
+
+    expected = f"[HIGH RISK] {name}: The action 'ec2:*' grants broad permissions on ec2, which can lead to privilege escalation."
+    assert found_suggestions
+    assert expected in suggestions
+
+
+def test_sensitive_service_privilege_escalation_warning_lambda():
+    name = "TestPolicyName"
+    action = 'lambda:*'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_overly_permissive(name, raw_policy)
+
+    expected = f"[HIGH RISK] {name}: The action 'lambda:*' grants broad permissions on lambda, which can lead to privilege escalation."
+    assert found_suggestions
+    assert expected in suggestions
 
 
 
@@ -257,6 +316,212 @@ def test_empty_policy_no_suggestions():
     assert not found_suggestions
     assert suggestions == set()
 
+
+
+
+def test_empty_action_policy_no_suggestions():
+    name = "EmptyPolicy",
+    action = 'AdministratorAccess',
+    effect = ''
+    raw_policy = {
+        "Version": "2012-10-17",
+        "Statement": []
+    }
+
+    suggestions, _, found_suggestions = check_overly_permissive(name, raw_policy)
+
+    assert not found_suggestions
+    assert suggestions == set()
+
+
+
+
+
+
+def test_overly_permissive_resources_s3():
+    name = "TestPolicyName"
+    action = 's3:PutObject'
+    effect = 'Allow'
+    resource = 'arn:aws:s3:::*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_overly_permissive(name, raw_policy)
+
+    expected = f"[WARNING] {name}: The resource '{resource}' could be overly broad and may allow unintended access."
+    assert found_suggestions
+    assert expected in suggestions
+
+
+
+def test_overly_permissive_resources_s3_2():
+    name = "TestPolicyName"
+    action = 's3:PutObject'
+    effect = 'Allow'
+    resource = 'arn:aws:s3:::my-bucket/*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_overly_permissive(name, raw_policy)
+
+    expected = f"[WARNING] {name}: The resource '{resource}' could be overly broad and may allow unintended access."
+    assert found_suggestions
+    assert expected in suggestions
+
+
+
+
+
+#### Unneccessary write mpersionnmion  #################################################### 
+
+
+
+
+def test_check_unnecessary_write_permissions_s3_delete():
+    name = "TestPolicyName"
+    action = 's3:DeleteObject'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_unnecessary_write_permissions(name, raw_policy)
+
+    expected = f"[WARNING] {name}: The action '{action}' allows modification or deletion of resources."
+    assert found_suggestions
+    assert expected in suggestions
+    assert len(suggestions) > 0
+
+
+
+
+def test_check_unnecessary_write_permissions_s3_put():
+    name = "TestPolicyName"
+    action = 's3:PutObject'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_unnecessary_write_permissions(name, raw_policy)
+
+    expected = f"[WARNING] {name}: The action '{action}' allows modification or deletion of resources."
+    assert found_suggestions
+    assert expected in suggestions
+    assert len(suggestions) > 0
+
+
+
+
+def test_check_unnecessary_write_permissions_ec2_terminate_instance():
+    name = "TestPolicyName"
+    action = 'ec2:TerminateInstances'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_unnecessary_write_permissions(name, raw_policy)
+
+    expected = f"[WARNING] {name}: The action '{action}' allows modification or deletion of resources."
+    assert found_suggestions
+    assert expected in suggestions
+    assert len(suggestions) > 0
+
+
+
+def test_check_unnecessary_write_permissions_ec2_modify_instance():
+    name = "TestPolicyName"
+    action = 'ec2:ModifyInstanceAttribute'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_unnecessary_write_permissions(name, raw_policy)
+
+    expected = f"[WARNING] {name}: The action '{action}' allows modification or deletion of resources."
+    assert found_suggestions
+    assert expected in suggestions
+    assert len(suggestions) > 0
+
+
+
+def test_check_unnecessary_write_permissions_iam_delete_user():
+    name = "TestPolicyName"
+    action = 'iam:DeleteUser'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_unnecessary_write_permissions(name, raw_policy)
+
+    expected = f"[WARNING] {name}: The action '{action}' allows modification or deletion of resources."
+    assert found_suggestions
+    assert expected in suggestions
+    assert len(suggestions) > 0
+
+
+def test_check_unnecessary_write_permissions_iam_update_role():
+    name = "TestPolicyName"
+    action = 'iam:UpdateRole'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_unnecessary_write_permissions(name, raw_policy)
+
+    expected = f"[WARNING] {name}: The action '{action}' allows modification or deletion of resources."
+    assert found_suggestions
+    assert expected in suggestions
+    assert len(suggestions) > 0
+
+
+
+def test_check_unnecessary_write_permissions_lambda_delete_fx():
+    name = "TestPolicyName"
+    action = 'lambda:DeleteFunction'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_unnecessary_write_permissions(name, raw_policy)
+
+    expected = f"[WARNING] {name}: The action '{action}' allows modification or deletion of resources."
+    assert found_suggestions
+    assert expected in suggestions
+    assert len(suggestions) > 0
+
+
+def test_check_unnecessary_write_permissions_lambda_update_fx_code():
+    name = "TestPolicyName"
+    action = 'lambda:UpdateFunctionCode'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_unnecessary_write_permissions(name, raw_policy)
+
+    expected = f"[WARNING] {name}: The action '{action}' allows modification or deletion of resources."
+    assert found_suggestions
+    assert expected in suggestions
+    assert len(suggestions) > 0
+
+
+
+
+
+
+
+
+
+
+
+# TODO: add checks for errors 
 
 
 # TODO: add tests that code suggestions are right

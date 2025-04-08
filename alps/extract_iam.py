@@ -23,7 +23,7 @@ def extract_iam_resources(file_path):
     '''
 
     # The types of IAM resources to extract
-    desired_resource_types = ["AWS::IAM::Policy", "AWS::IAM::ManagedPolicy"] # "AWS::IAM::Role", ""AWS::S3::BucketPolicy""
+    desired_resource_types = ["AWS::IAM::Policy", "AWS::IAM::ManagedPolicy", "AWS::S3::BucketPolicy"] # "AWS::IAM::Role" 
 
     # Open the file as JSON
     with open(file_path, 'r') as file:
