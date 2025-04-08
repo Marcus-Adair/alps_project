@@ -94,6 +94,39 @@ mock_json_str_empty = json.dumps(mock_json_input_empy)
 ##### extract_iam_resources() Tests ##########################################
 
 
+
+@patch("builtins.open", new_callable=mock_open, read_data=mock_json_str_empty)
+def test_extract_iam_resources_empty_stack(mock_file):
+    result = extract_iam_resources("fake/path.json")
+
+    assert isinstance(result, dict)
+    assert result == {}
+
+
+
+@patch("builtins.open", new_callable=mock_open, read_data='{"invalid": "json"')
+def test_extract_iam_resources_json_error(mock_file):
+    result = extract_iam_resources("fake/path.json")
+    assert result.startswith("Error extracting iam resources")
+
+
+
+
+@patch("builtins.open", new_callable=mock_open, read_data='')
+def test_extract_iam_resources_empty_string(mock_file):
+    result = extract_iam_resources("fake/path.json")
+    assert result.startswith("Error extracting iam resources")
+
+
+
+@patch("builtins.open", new_callable=mock_open, read_data='{"irrelevant": "json"}')
+def test_extract_iam_resources_irrelevant_json(mock_file):
+    
+    result = extract_iam_resources("fake/path.json")
+    assert isinstance(result, dict)
+    assert result == {}
+
+
 @patch("builtins.open", new_callable=mock_open, read_data=mock_json_str_1)
 def test_extract_iam_resources(mock_file):
     result = extract_iam_resources("fake/path.json")
@@ -106,6 +139,50 @@ def test_extract_iam_resources(mock_file):
 
     assert len(result["NestedStack2"]) == 1
     assert result["NestedStack2"][0]["Type"] == "AWS::IAM::ManagedPolicy"
+
+
+
+@patch("builtins.open", new_callable=mock_open, read_data=mock_json_str_2)
+def test_extract_iam_resources_bucket_policy(mock_file):
+    result = extract_iam_resources("fake/path.json")
+
+    assert "NestedStack1" in result
+
+    assert len(result["NestedStack1"]) == 1
+    assert result["NestedStack1"][0]["Type"] == "AWS::S3::BucketPolicy"
+
+
+
+
+
+
+
+##### get_stacks_policies() Tests ##########################################
+
+
+
+
+@patch("builtins.open", new_callable=mock_open, read_data=mock_json_str_empty)
+def test_get_empty_stack(mock_file):
+    result = json.loads(get_stacks_policies("fake/path.json"))
+
+    assert isinstance(result, dict)
+    assert result == {}
+
+
+
+@patch("builtins.open", new_callable=mock_open, read_data='{"invalid": "json"')
+def test_get_stacks_policies_json_error(mock_file):
+    result = get_stacks_policies("fake/path.json")
+    assert result.startswith("Error getting stack policies")
+
+
+@patch("builtins.open", new_callable=mock_open, read_data='{"irrelevant": "json"}')
+def test_get_stack_policies_irrelevant_json(mock_file):
+    
+    result = json.loads(get_stacks_policies("fake/path.json"))
+    assert isinstance(result, dict)
+    assert result == {}
 
 
 @patch("builtins.open", new_callable=mock_open, read_data=mock_json_str_1)
@@ -122,15 +199,6 @@ def test_get_stacks_policies(mock_file):
     assert isinstance(result["NestedStack2"]["MyManagedPolicy"], dict)
 
 
-@patch("builtins.open", new_callable=mock_open, read_data=mock_json_str_2)
-def test_extract_iam_resources_bucket_policy(mock_file):
-    result = extract_iam_resources("fake/path.json")
-
-    assert "NestedStack1" in result
-
-    assert len(result["NestedStack1"]) == 1
-    assert result["NestedStack1"][0]["Type"] == "AWS::S3::BucketPolicy"
-
 
 @patch("builtins.open", new_callable=mock_open, read_data=mock_json_str_2)
 def test_get_stacks_policies_bucket_policy(mock_file):
@@ -139,24 +207,3 @@ def test_get_stacks_policies_bucket_policy(mock_file):
     assert "NestedStack1" in result
     assert "MyTestPolicy" in result["NestedStack1"]
     assert isinstance(result["NestedStack1"]["MyTestPolicy"], dict)
-
-
-
-
-
-
-##### get_stacks_policies() Tests ##########################################
-
-@patch("builtins.open", new_callable=mock_open, read_data=mock_json_str_empty)
-def test_get_empty_stack(mock_file):
-    result = json.loads(get_stacks_policies("fake/path.json"))
-
-    assert isinstance(result, dict)
-    assert result == {}
-
-
-
-@patch("builtins.open", new_callable=mock_open, read_data='{"invalid": "json"')
-def test_get_stacks_policies_json_error(mock_file):
-    result = get_stacks_policies("fake/path.json")
-    assert result.startswith("Error getting stack policies")

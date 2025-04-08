@@ -163,6 +163,8 @@ def check_overly_permissive(policy_name, raw_policy_json):
                 suggestions.add(f"[WARNING] {policy_name}: The resource '{resource}' could be overly broad and may allow unintended access.")
                 python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resource, actions_message="", resources_message="Consider tightening up the allowed resources here"))
 
+
+
         # Additional warnings for sensitive permissions
         sensitive_services = ["iam", "s3", "ec2", "lambda"]
         for action in actions:

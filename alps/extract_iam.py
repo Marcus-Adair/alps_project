@@ -22,37 +22,43 @@ def extract_iam_resources(file_path):
         file_path (string): path to the file containing Cloud infrastructre JSON output from 'cdk synth' 
     '''
 
-    # The types of IAM resources to extract
-    desired_resource_types = ["AWS::IAM::Policy", "AWS::IAM::ManagedPolicy", "AWS::S3::BucketPolicy"] # "AWS::IAM::Role" 
+    try:
 
-    # Open the file as JSON
-    with open(file_path, 'r') as file:
-        json_data = json.load(file)
+        # The types of IAM resources to extract
+        desired_resource_types = ["AWS::IAM::Policy", "AWS::IAM::ManagedPolicy", "AWS::S3::BucketPolicy"] # "AWS::IAM::Role" 
 
-    # Init return dict
-    iam_resources = {}
+        # Open the file as JSON
+        with open(file_path, 'r') as file:
+            json_data = json.load(file)
 
-    # For each nested stack
-    for stack in json_data: 
+        # Init return dict
+        iam_resources = {}
 
-        stack_iam = [] # init list for saving IAM resources
+        # For each nested stack
+        for stack in json_data: 
 
-        # Extract the AwS::IAM resources 
-        for stack_key in json_data[stack]:
-            if stack_key == 'Resources':
-                for resource in json_data[stack][stack_key]:
-                    for resource_item in json_data[stack][stack_key][resource]:
-                        if resource_item == "Type":
-                            if json_data[stack][stack_key][resource][resource_item] in desired_resource_types:
-                                
-                                # Save the IAM resource
-                                stack_iam.append(json_data[stack][stack_key][resource])
+            stack_iam = [] # init list for saving IAM resources
 
-        # Only save data when the stack has IAM resources
-        if len(stack_iam) > 0:
-            iam_resources[stack] = stack_iam
+            # Extract the AwS::IAM resources 
+            for stack_key in json_data[stack]:
+                if stack_key == 'Resources':
+                    for resource in json_data[stack][stack_key]:
+                        for resource_item in json_data[stack][stack_key][resource]:
+                            if resource_item == "Type":
+                                if json_data[stack][stack_key][resource][resource_item] in desired_resource_types:
+                                    
+                                    # Save the IAM resource
+                                    stack_iam.append(json_data[stack][stack_key][resource])
 
-    return iam_resources
+            # Only save data when the stack has IAM resources
+            if len(stack_iam) > 0:
+                iam_resources[stack] = stack_iam
+
+        return iam_resources
+
+
+    except Exception as e:
+        return f"Error extracting iam resources: {e}"
 
 
 
@@ -158,7 +164,8 @@ def get_stacks_policies(file_path):
         # Return stack_policies_dict as JSON to the calling bash script
         return json.dumps(stack_policies_dict)
 
-    except json.JSONDecodeError as e:
+    except Exception as e:
+        
         return f"Error getting stack policies: {e}"
 
 # MAIN 
