@@ -1,5 +1,5 @@
 <p>
-  <img src="./assets/ALPS_logo.png" alt="Project Logo" width="150"/>
+  <img src="./assets/ALPS_Logo.png" alt="Project Logo" width="150"/>
 </p>
 
 # Automatic Least-Privilege Policy Suggestor (ALPS)
