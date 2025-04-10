@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 
+###########################################################
+#
+#   Wrapper script to run the main Bash script for orchestrating ALPS
+#
+#   This file hanldes arguments when 'alps' command is ran, calls alps_main.sh, and makes sure that paths to 
+#   files are known. 
+###########################################################
+
 import sys
 import os
 

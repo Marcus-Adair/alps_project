@@ -6,28 +6,7 @@
 
 '''
 import pytest
-from alps.insecurity_scan import create_suggested_python_code, check_overly_permissive, check_unnecessary_write_permissions
-
-
-# Helper Method ------------------------------------------- #
-# def get_iam_policy_template(policy_name, actions, actions_message_comment, resources, resources_message_comment, effect):
-#     iam_policy_template = f'''
-# Python Policy suggestion:
-# -------------------------
-# policy_var_name = iam.ManagedPolicy(self, "ADD_UNIQUE_STACK_IDENTIFIER_HERE",
-#     managed_policy_name="{policy_name}",
-#     description="ADD DESCRIPTION HERE",
-#     statements=[
-#         iam.PolicyStatement(
-#             actions={str(actions)}, {actions_message_comment}
-#             resources={str(resources)}, {resources_message_comment}
-#             effect={effect}
-#         )
-#     ],
-# )
-
-# '''
-#     return iam_policy_template
+from alps.insecurity_scan import create_suggested_python_code, check_overly_permissive, check_unnecessary_write_permissions, check_iam_privilege_escalation
 
 
 
@@ -372,7 +351,7 @@ def test_overly_permissive_resources_s3_2():
 
 
 
-#### Unneccessary write mpersionnmion  #################################################### 
+#### Unneccessary write permissions  #################################################### 
 
 
 
@@ -515,13 +494,201 @@ def test_check_unnecessary_write_permissions_lambda_update_fx_code():
 
 
 
+#### Privilege Escalation Risks  #################################################### 
+
+
+def test_check_privilige_escalation_PutUserPolicy():
+    name = "TestPolicyName"
+    action = 'iam:PutUserPolicy'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_iam_privilege_escalation(name, raw_policy)
+
+    expected = f"[HIGH RISK] {name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access."
+    assert found_suggestions
+    assert expected in suggestions
+    assert len(suggestions) > 0
 
 
 
+def test_check_privilige_escalation_PutGroupPolicy():
+    name = "TestPolicyName"
+    action = 'iam:PutGroupPolicy'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_iam_privilege_escalation(name, raw_policy)
+
+    expected = f"[HIGH RISK] {name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access."
+    assert found_suggestions
+    assert expected in suggestions
+    assert len(suggestions) > 0
 
 
 
-# TODO: add checks for errors 
+def test_check_privilige_escalation_CreatePolicy():
+    name = "TestPolicyName"
+    action = 'iam:CreatePolicy'
+    effect = 'Allow'
+    resource = '*'
 
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_iam_privilege_escalation(name, raw_policy)
+
+    expected = f"[HIGH RISK] {name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access."
+    assert found_suggestions
+    assert expected in suggestions
+    assert len(suggestions) > 0
+
+
+
+def test_not_none_privilege_escalation():
+    '''
+        Tests that check_overly_permissive() returns non-None values when passed an insecure policy
+    '''
+    name = "TestPolicyName"
+    action = 'iam:CreatePolicy'
+    effect = 'Allow'
+    resource = '*'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, python_code_suggestions, found_suggestions = check_iam_privilege_escalation(name, raw_policy)
+
+    assert (suggestions is not None) and (python_code_suggestions is not None) and (found_suggestions is not None)
+
+
+
+def test_safe_policy_no_suggestions_privilege_escalation():    
+    name = "TestPolicyName"
+    action = 'secretsmanager:GetSecretValue'
+    effect = 'Allow'
+    resource = 'arn:aws:secretsmanager::secret:my-secret'
+
+    raw_policy = get_set_raw_policy_template(action, effect, resource)
+
+    suggestions, _, found_suggestions = check_iam_privilege_escalation(name, raw_policy)
+
+    assert not (found_suggestions)
+
+
+############################################################################################ 
+
+
+
+def test_python_code_suggestion_default_output():
+
+    code_suggestions_result = create_suggested_python_code(
+        policy_name="MyPolicy",
+        effect="iam.Effect.ALLOW",
+        actions=["s3:GetObject"],
+        resources=["arn:aws:s3:::my-bucket/*"]
+    )
+
+    assert 'managed_policy_name="MyPolicy"' in code_suggestions_result
+    assert "actions=['s3:GetObject']" in code_suggestions_result
+    assert "resources=['arn:aws:s3:::my-bucket/*']" in code_suggestions_result
+    assert "# Tighten up the allowed actions here" in code_suggestions_result
+
+    # Test that default comments are used
+    assert "# Use a specific resource here" in code_suggestions_result
+    assert "effect=iam.Effect.ALLOW" in code_suggestions_result
+
+
+
+def test_python_code_suggestion_empty_comments():
+
+    code_suggestions_result = create_suggested_python_code(
+        policy_name="MyPolicy",
+        effect="iam.Effect.ALLOW",
+        actions=["s3:GetObject"],
+        resources=["arn:aws:s3:::my-bucket/*"],
+        actions_message="",
+        resources_message=""
+    )
+
+    assert 'managed_policy_name="MyPolicy"' in code_suggestions_result
+    assert "actions=['s3:GetObject']" in code_suggestions_result
+    assert "resources=['arn:aws:s3:::my-bucket/*']" in code_suggestions_result
+
+    # Test that the default comment-suggestions aren't added when method's manually passed empty messages
+    assert "# Tighten up the allowed actions here" not in code_suggestions_result
+    assert "# Use a specific resource here" not in code_suggestions_result
+
+
+
+def test_python_code_suggestion_custom_comments():
+    code_suggestions_result = create_suggested_python_code(
+        policy_name="MyPolicy",
+        effect="iam.Effect.ALLOW",
+        actions=["lambda:InvokeFunction"],
+        resources=["arn:aws:lambda:::function:*"],
+        actions_message="Only allow specific functions",
+        resources_message="Avoid wildcards"
+    )
+
+    assert "# Only allow specific functions" in code_suggestions_result
+    assert "# Avoid wildcards" in code_suggestions_result
+
+
+def test_python_code_suggestion_empty_policy_name():
+
+    with pytest.raises(ValueError) as excinfo:
+        create_suggested_python_code(
+            policy_name="",
+            effect="iam.Effect.ALLOW",
+            actions=["s3:GetObject"],
+            resources=["arn:aws:s3:::my-bucket/*"],
+        )
+    assert str(excinfo.value) == "The 'policy_name' parameter must not be empty or None."
+
+
+def test_python_code_suggestion_empty_effect():
+
+    with pytest.raises(ValueError) as excinfo:
+        create_suggested_python_code(
+            policy_name="MyPolicy",
+            effect="",
+            actions=["s3:GetObject"],
+            resources=["arn:aws:s3:::my-bucket/*"],
+        )
+    assert str(excinfo.value) == "The 'effect' parameter must not be empty or None."
+
+
+def test_python_code_suggestion_empty_actions():
+
+    with pytest.raises(ValueError) as excinfo:
+        create_suggested_python_code(
+            policy_name="MyPolicy",
+            effect="iam.Effect.ALLOW",
+            actions=[],
+            resources=["arn:aws:s3:::my-bucket/*"],
+        )
+    assert str(excinfo.value) == "The 'actions' parameter must not be empty or None."
+
+
+def test_python_code_suggestion_empty_resources():
+
+    with pytest.raises(ValueError) as excinfo:
+        create_suggested_python_code(
+            policy_name="MyPolicy",
+            effect="iam.Effect.ALLOW",
+            actions=["s3:GetObject"],
+            resources=[],
+        )
+    assert str(excinfo.value) == "The 'resources' parameter must not be empty or None."
+
+
+    
+######################################################################
+
+
+# TODO: add tests to checks for proper error returns 
 
 # TODO: add tests that code suggestions are right

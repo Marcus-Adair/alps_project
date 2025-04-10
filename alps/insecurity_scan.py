@@ -1,5 +1,6 @@
 # ------------------------------------------------------ #
-#   Purpose: TODO
+#   Purpose: Scans JSON output of IAM policies for potential security vulnerabilites. Returns warnings + Python code
+#            suggestions based on found vulnerabilites.
 #
 #   Author: Marcus Adair, University of Utah, Spring 2025
 # ------------------------------------------------------ #
@@ -23,10 +24,22 @@ def print_v(verbose_log):
     '''
     print(verbose_log, file=sys.stderr)
 
+
+
 def create_suggested_python_code(policy_name, effect, actions, resources, actions_message="Tighten up the allowed actions here", resources_message="Use a specific resource here"):
     '''
         Converts an IAN policy document in JSON from to Python code for code suggestion
     '''
+
+    if not policy_name:
+        raise ValueError("The 'policy_name' parameter must not be empty or None.")
+    if not effect:
+        raise ValueError("The 'effect' parameter must not be empty or None.")
+    if not actions:
+        raise ValueError("The 'actions' parameter must not be empty or None.")
+    if not resources:
+        raise ValueError("The 'resources' parameter must not be empty or None.")
+    
 
     # Form comment to add, with option of adding no comment with "" is input
     if actions_message == "":
@@ -39,6 +52,7 @@ def create_suggested_python_code(policy_name, effect, actions, resources, action
     else:
         resources_message_comment = f"# {resources_message}"
     
+
 
     iam_policyStaments = f'''
 Python Policy suggestion:
@@ -214,18 +228,54 @@ def check_unnecessary_write_permissions(policy_name, raw_policy_json):
                     python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources, actions_message="Consider if these actions are needed or could be tightened", resources_message=""))
 
 
-    # Flag if gound suggestions
+    # Flag if found suggestions
     found_suggestions =  len(suggestions) != 0
 
     return suggestions, python_code_suggestions, found_suggestions
 
 
-#### MAYBE: #######
-# TODO: lack of conditions? 
 
-# TODO:  Privilege Escalation Risks?
-#   - "iam:CreatePolicyVersion" → Can update an IAM policy to grant more permissions.
-#   - "iam:AttachUserPolicy" or "iam:AttachGroupPolicy" → Allows attaching policies
+def check_iam_privilege_escalation(policy_name, raw_policy_json):
+    """
+    Checks an IAM policy JSON for unnecessary write permissions that could allow data tampering or destruction.
+
+    """
+
+    policy_statements = raw_policy_json.get("Statement", [])
+    suggestions = set()
+    python_code_suggestions = set()
+
+    # Define high-risk write IAM actions 
+    high_risk_iam_actions = ["iam:PutUserPolicy", "iam:PutGroupPolicy", "iam:PutRolePolicy", "iam:AttachUserPolicy",
+                "iam:AttachGroupPolicy", "iam:AttachRolePolicy", "iam:UpdateAssumeRolePolicy", "iam:CreatePolicy",
+                "iam:CreateRole", "iam:PassRole", "iam:UpdateAssumeRolePolicy",
+                "iam:CreateUser", "iam:CreateAccessKey", "iam:CreateLoginProfile"]
+
+
+    for statement in policy_statements:
+        # Parse the Policy document
+        effect, actions, resources = get_effect_actions_resources(statement)
+
+        if effect != "Allow":
+            continue  # Skip Deny statements
+
+        # Check for high-risk iam actions
+        for action in actions:
+            if action in high_risk_iam_actions:
+                suggestions.add(f"[HIGH RISK] {policy_name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access.")
+                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources,  actions_message="Review the action(s) here and consider restricting/removing them.", resources_message=""))
+
+
+    # Flag if found suggestions
+    found_suggestions =  len(suggestions) != 0
+
+    return suggestions, python_code_suggestions, found_suggestions
+
+
+
+# -------------------------------------------------------------------------- #
+# Main method to scan for policy insecurities
+# -------------------------------------------------------------------------- #
 
 
 def scan_for_insecurities(json_policies_str):
@@ -266,10 +316,12 @@ def scan_for_insecurities(json_policies_str):
                 python_suggestions.update(write_permissions_code_suggestions)
 
 
-
+                iam_privilege_escalation_warnings, iam_privilege_escalation_code_suggestions, found_iam_privilege_escalation_suggestions = check_iam_privilege_escalation(policy_name, raw_policy_document_json)
+                insecurities.update(iam_privilege_escalation_warnings)
+                python_suggestions.update(iam_privilege_escalation_code_suggestions)
 
                 # Track unique policy names with security vulnerabilites
-                found_suggestions = found_overly_permissive_suggestions or found_write_permissions_suggestions
+                found_suggestions = found_overly_permissive_suggestions or found_write_permissions_suggestions or found_iam_privilege_escalation_suggestions
                 if found_suggestions:
                     insecure_policy_names.add(policy_name)
 

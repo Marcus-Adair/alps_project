@@ -78,4 +78,6 @@ pytest
 
 ## Additional Notes:
 
+- ALPS is meant to be ran after running `cdk synth` on a CDK infrastructure code - it uses the most recent JSON output from `cdk synth` and assumes that the CDK code successfully synthesizes without errors.
+
 - ALPS assumes that user policies are named and do not contain "DefaultPolicy". If "DefaultPolicy" is contained in a manually created policy then ALPS will ignore it.
