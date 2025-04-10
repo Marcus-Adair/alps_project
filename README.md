@@ -1,3 +1,7 @@
+<p>
+  <img src="./assets/ALPS_logo.png" alt="Project Logo" width="150"/>
+</p>
+
 # Automatic Least-Privilege Policy Suggestor (ALPS)
 
 This repository contains code for **Automatic Least-Privilege Policy Suggestor (ALPS)**—my Spring 2025 **Software & Systems Security Project**.
