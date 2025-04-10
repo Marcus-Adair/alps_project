@@ -1,5 +1,6 @@
 # ------------------------------------------------------ #
-#   Purpose: TODO
+#   Purpose: Scans JSON output of IAM policies for potential security vulnerabilites. Returns warnings + Python code
+#            suggestions based on found vulnerabilites.
 #
 #   Author: Marcus Adair, University of Utah, Spring 2025
 # ------------------------------------------------------ #
@@ -23,10 +24,22 @@ def print_v(verbose_log):
     '''
     print(verbose_log, file=sys.stderr)
 
+
+
 def create_suggested_python_code(policy_name, effect, actions, resources, actions_message="Tighten up the allowed actions here", resources_message="Use a specific resource here"):
     '''
         Converts an IAN policy document in JSON from to Python code for code suggestion
     '''
+
+    if not policy_name:
+        raise ValueError("The 'policy_name' parameter must not be empty or None.")
+    if not effect:
+        raise ValueError("The 'effect' parameter must not be empty or None.")
+    if not actions:
+        raise ValueError("The 'actions' parameter must not be empty or None.")
+    if not resources:
+        raise ValueError("The 'resources' parameter must not be empty or None.")
+    
 
     # Form comment to add, with option of adding no comment with "" is input
     if actions_message == "":
@@ -39,6 +52,7 @@ def create_suggested_python_code(policy_name, effect, actions, resources, action
     else:
         resources_message_comment = f"# {resources_message}"
     
+
 
     iam_policyStaments = f'''
 Python Policy suggestion:
@@ -257,11 +271,6 @@ def check_iam_privilege_escalation(policy_name, raw_policy_json):
 
     return suggestions, python_code_suggestions, found_suggestions
 
-
-
-
-#### MAYBE: #######
-# TODO: lack of conditions? 
 
 
 # -------------------------------------------------------------------------- #
