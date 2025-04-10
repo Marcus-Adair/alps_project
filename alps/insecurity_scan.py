@@ -321,7 +321,7 @@ def scan_for_insecurities(json_policies_str):
                 python_suggestions.update(iam_privilege_escalation_code_suggestions)
 
                 # Track unique policy names with security vulnerabilites
-                found_suggestions = found_overly_permissive_suggestions or found_iam_privilege_escalation_suggestions or found_iam_privilege_escalation_suggestions
+                found_suggestions = found_overly_permissive_suggestions or found_write_permissions_suggestions or found_iam_privilege_escalation_suggestions
                 if found_suggestions:
                     insecure_policy_names.add(policy_name)
 
