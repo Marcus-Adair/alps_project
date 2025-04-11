@@ -197,7 +197,7 @@ def test_sensitive_service_privilege_escalation_warning_iam():
 
     suggestions, _, found_suggestions = check_overly_permissive(name, raw_policy)
 
-    expected = f"[HIGH RISK] {name}: The action 'iam:*' grants broad permissions on iam, which can lead to privilege escalation."
+    expected = f"[WARNING] {name}: The action 'iam:*' grants broad permissions on iam, which can lead to privilege escalation."
     assert found_suggestions
     assert expected in suggestions
 
@@ -213,7 +213,7 @@ def test_sensitive_service_privilege_escalation_warning_s3():
 
     suggestions, _, found_suggestions = check_overly_permissive(name, raw_policy)
 
-    expected = f"[HIGH RISK] {name}: The action 's3:*' grants broad permissions on s3, which can lead to privilege escalation."
+    expected = f"[WARNING] {name}: The action 's3:*' grants broad permissions on s3, which can lead to privilege escalation."
     assert found_suggestions
     assert expected in suggestions
 
@@ -229,7 +229,7 @@ def test_sensitive_service_privilege_escalation_warning_ec2():
 
     suggestions, _, found_suggestions = check_overly_permissive(name, raw_policy)
 
-    expected = f"[HIGH RISK] {name}: The action 'ec2:*' grants broad permissions on ec2, which can lead to privilege escalation."
+    expected = f"[WARNING] {name}: The action 'ec2:*' grants broad permissions on ec2, which can lead to privilege escalation."
     assert found_suggestions
     assert expected in suggestions
 
@@ -244,7 +244,7 @@ def test_sensitive_service_privilege_escalation_warning_lambda():
 
     suggestions, _, found_suggestions = check_overly_permissive(name, raw_policy)
 
-    expected = f"[HIGH RISK] {name}: The action 'lambda:*' grants broad permissions on lambda, which can lead to privilege escalation."
+    expected = f"[WARNING] {name}: The action 'lambda:*' grants broad permissions on lambda, which can lead to privilege escalation."
     assert found_suggestions
     assert expected in suggestions
 
@@ -507,7 +507,7 @@ def test_check_privilige_escalation_PutUserPolicy():
 
     suggestions, _, found_suggestions = check_iam_privilege_escalation(name, raw_policy)
 
-    expected = f"[HIGH RISK] {name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access."
+    expected = f"[WARNING] {name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access."
     assert found_suggestions
     assert expected in suggestions
     assert len(suggestions) > 0
@@ -524,7 +524,7 @@ def test_check_privilige_escalation_PutGroupPolicy():
 
     suggestions, _, found_suggestions = check_iam_privilege_escalation(name, raw_policy)
 
-    expected = f"[HIGH RISK] {name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access."
+    expected = f"[WARNING] {name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access."
     assert found_suggestions
     assert expected in suggestions
     assert len(suggestions) > 0
@@ -541,7 +541,7 @@ def test_check_privilige_escalation_CreatePolicy():
 
     suggestions, _, found_suggestions = check_iam_privilege_escalation(name, raw_policy)
 
-    expected = f"[HIGH RISK] {name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access."
+    expected = f"[WARNING] {name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access."
     assert found_suggestions
     assert expected in suggestions
     assert len(suggestions) > 0

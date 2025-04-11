@@ -121,7 +121,6 @@ def get_effect_actions_resources(policy_statement):
             else:
                 join_str += to_join
 
-        # print_v(f"join_string: {join_str}")
         resources = [join_str]
 
     return effect, actions, resources
@@ -192,7 +191,7 @@ def check_overly_permissive(policy_name, raw_policy_json):
         for action in actions:
             service = action.split(":")[0]
             if service in sensitive_services and (action.endswith("*") or action == "*"):
-                suggestions.add(f"[HIGH RISK] {policy_name}: The action '{action}' grants broad permissions on {service}, which can lead to privilege escalation.")
+                suggestions.add(f"[WARNING] {policy_name}: The action '{action}' grants broad permissions on {service}, which can lead to privilege escalation.")
                 python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources, actions_message="Consider tightening the allowed actions to make things more least-privilege", resources_message=""))
 
 
@@ -219,8 +218,6 @@ def check_unnecessary_write_permissions(policy_name, raw_policy_json):
         "iam": ["iam:DeleteUser", "iam:UpdateRole"],
         "lambda": ["lambda:DeleteFunction", "lambda:UpdateFunctionCode"]
     }
-
-    # TODO: add more specific code suggestion messages here
 
     for statement in policy_statements:
         # Parse the Policy document
@@ -278,7 +275,7 @@ def check_iam_privilege_escalation(policy_name, raw_policy_json):
         # Check for high-risk iam actions
         for action in actions:
             if action in high_risk_iam_actions:
-                suggestions.add(f"[HIGH RISK] {policy_name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access.")
+                suggestions.add(f"[WARNING] {policy_name}: The action '{action}' could allow users or roles to escalate their privileges, potentially granting themselves full administrative access.")
                 python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources,  actions_message="Review the action(s) here and consider restricting/removing them.", resources_message=""))
 
 
@@ -324,51 +321,20 @@ def scan_for_insecurities(json_policies_str):
                 raw_policy_document_json = json_policies[policies_in_a_sack][policy_name]
 
 
-                ################################################################################
-                # if policy_name == "JSON-S3-Access-For-OutputLambdaFX-cdk":
-                #     print_v("ALLLLERRRRTTTTTTT !!!!!!!")
-
-                #     policy_statement = raw_policy_document_json.get("Statement", [])[0]
-                #     resources = policy_statement.get("Resource", [])
-                #     resources = resources if isinstance(resources, list) else [resources]   
-
-                #     # Check if join of referenced resources 
-                #     if 'Fn::Join' in resources[0]:
-                        
-                #         join_list = resources[0]['Fn::Join'][1]
-
-                #         join_str = ''
-                #         for to_join in join_list:
-
-                #             if 'Ref' in to_join:
-                #                 join_str += to_join['Ref']
-                #             else:
-                #                 join_str += to_join
-
-
-                #         print_v(f"join_string: {join_str}")
-                #         resources = [join_str]
-
-
-                ################################################################################
-
-
-
-
-
                 # Parse for insecurites 
                 # -------------------------- #
+
                 # Check for overly permissive policies
                 overly_permissive_warnings, overly_permissive_code_suggestions, found_overly_permissive_suggestions = check_overly_permissive(policy_name, raw_policy_document_json)
                 insecurities.update(overly_permissive_warnings)
                 python_suggestions.update(overly_permissive_code_suggestions)
 
-
+                # Check for unnecessary write permisison
                 write_permissions_warnings, write_permissions_code_suggestions, found_write_permissions_suggestions = check_unnecessary_write_permissions(policy_name, raw_policy_document_json)
                 insecurities.update(write_permissions_warnings)
                 python_suggestions.update(write_permissions_code_suggestions)
 
-
+                # Check for privilege escalation risks 
                 iam_privilege_escalation_warnings, iam_privilege_escalation_code_suggestions, found_iam_privilege_escalation_suggestions = check_iam_privilege_escalation(policy_name, raw_policy_document_json)
                 insecurities.update(iam_privilege_escalation_warnings)
                 python_suggestions.update(iam_privilege_escalation_code_suggestions)
@@ -383,8 +349,6 @@ def scan_for_insecurities(json_policies_str):
     except json.JSONDecodeError as e:
 
         return f"Error scanning for insecurities: {e}"
-
-    
 
     
 
@@ -419,7 +383,7 @@ if __name__ == "__main__":
             merged_insecurity_warning = ""
             for insecur in insecurities_with_name:
                 insecurities.remove(insecur) # Remove single warning
-                merged_insecurity_warning += f"{insecur}\n" # Merge/append warning
+                merged_insecurity_warning += f"{insecur}\n" # Merge warning
 
             insecurities.add(merged_insecurity_warning)
             insecurities_map[policy_name] = merged_insecurity_warning
@@ -429,14 +393,13 @@ if __name__ == "__main__":
 
         # ------------------------------------------------------------------------------------------------ #
 
-        # TODO: Aggregate code suggestions too!!!!!! (when i start doing more custom code suggetsions, they'll be to be formated)
         code_suggestions_with_name = []
         for code_suggestion in code_suggestions:
             if policy_name in code_suggestion:
                 code_suggestions_with_name.append(code_suggestion)
 
 
-        # Remove
+        # Find code suggestions of the same name 
         if len(code_suggestions_with_name)  > 1:
 
             merged_code_suggestion = code_suggestions_with_name[0]
