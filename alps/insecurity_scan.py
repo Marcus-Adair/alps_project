@@ -108,6 +108,22 @@ def get_effect_actions_resources(policy_statement):
     resources = policy_statement.get("Resource", [])
     resources = resources if isinstance(resources, list) else [resources]
 
+    # Check if join of referenced resources 
+    if 'Fn::Join' in resources[0]:
+        
+        join_list = resources[0]['Fn::Join'][1]
+
+        join_str = ''
+        for to_join in join_list:
+
+            if 'Ref' in to_join:
+                join_str += to_join['Ref']
+            else:
+                join_str += to_join
+
+        # print_v(f"join_string: {join_str}")
+        resources = [join_str]
+
     return effect, actions, resources
 
 
@@ -167,7 +183,7 @@ def check_overly_permissive(policy_name, raw_policy_json):
 
             elif str(resource).endswith("*"):
                 suggestions.add(f"[WARNING] {policy_name}: The resource '{resource}' could be overly broad and may allow unintended access.")
-                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resource, actions_message="", resources_message="Consider tightening up the allowed resources here"))
+                python_code_suggestions.add(create_suggested_python_code(policy_name, effect, actions, resources, actions_message="", resources_message="Consider tightening up the allowed resources here"))
 
 
 
@@ -273,6 +289,10 @@ def check_iam_privilege_escalation(policy_name, raw_policy_json):
 
 
 
+# TODO: check for actions starting with "Delete"??
+
+# TODO: extract and check for wildcards in Principal? 
+
 # -------------------------------------------------------------------------- #
 # Main method to scan for policy insecurities
 # -------------------------------------------------------------------------- #
@@ -299,8 +319,41 @@ def scan_for_insecurities(json_policies_str):
                 # Note if security suggestions are found for the polciy
                 found_suggestions = False
 
+
                 # Get the Policy JSON
                 raw_policy_document_json = json_policies[policies_in_a_sack][policy_name]
+
+
+                ################################################################################
+                # if policy_name == "JSON-S3-Access-For-OutputLambdaFX-cdk":
+                #     print_v("ALLLLERRRRTTTTTTT !!!!!!!")
+
+                #     policy_statement = raw_policy_document_json.get("Statement", [])[0]
+                #     resources = policy_statement.get("Resource", [])
+                #     resources = resources if isinstance(resources, list) else [resources]   
+
+                #     # Check if join of referenced resources 
+                #     if 'Fn::Join' in resources[0]:
+                        
+                #         join_list = resources[0]['Fn::Join'][1]
+
+                #         join_str = ''
+                #         for to_join in join_list:
+
+                #             if 'Ref' in to_join:
+                #                 join_str += to_join['Ref']
+                #             else:
+                #                 join_str += to_join
+
+
+                #         print_v(f"join_string: {join_str}")
+                #         resources = [join_str]
+
+
+                ################################################################################
+
+
+
 
 
                 # Parse for insecurites 
@@ -324,7 +377,6 @@ def scan_for_insecurities(json_policies_str):
                 found_suggestions = found_overly_permissive_suggestions or found_write_permissions_suggestions or found_iam_privilege_escalation_suggestions
                 if found_suggestions:
                     insecure_policy_names.add(policy_name)
-
 
         return insecurities, python_suggestions, insecure_policy_names
 
@@ -421,6 +473,11 @@ if __name__ == "__main__":
 '''
         output.append(output_i)
 
+
+    for policy_name in insecure_policy_names:
+        print_v(policy_name)
+    
+    print_v(len(insecure_policy_names))
 
     # Return output to main bash script 
     print(json.dumps(output))
