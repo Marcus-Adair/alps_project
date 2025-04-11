@@ -437,11 +437,6 @@ if __name__ == "__main__":
         output.append(output_i)
 
 
-    for policy_name in insecure_policy_names:
-        print_v(policy_name)
-    
-    print_v(len(insecure_policy_names))
-
     # Return output to main bash script 
     print(json.dumps(output))
 
